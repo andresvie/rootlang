@@ -12,7 +12,7 @@ Proof Of Concept of functional programing language
 * Generate LLVM Intermediate Representation(IR)
 
 ## Syntax
-rootlang has a syntax easy to follow
+rootlang has a syntax easy to follow is like programming on python o javascript only have the good parts the both of them
 ```rootlang
 //rootlang has ducktype object system a variable can has a differents values over of cycle of life;
 //every valid sentences in rootlang has to be ended with semicolon character;
