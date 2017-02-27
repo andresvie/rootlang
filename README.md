@@ -20,4 +20,5 @@ the function has clousure by default example
 let add = (x,y) => {return x + y;};
 let add10 = add(10);
 let x = add10(5);
-//this sentences assign to variable x the value of 15, add10 became a function with the value 10 bound to local variable x in the context of the function;```
+//this sentences assign to variable x the value of 15, add10 became a function with the value 10 bound to local variable x in the context of the function;
+```
