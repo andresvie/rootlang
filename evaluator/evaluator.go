@@ -3,18 +3,19 @@ package evaluator
 import (
   "rootlang/ast"
   "rootlang/object"
+  "rootlang/builtin"
   "fmt"
 )
 
-func Eval(node ast.Node, environment *object.Environment) object.Object {
+func Eval(node ast.Node, environment *object.Environment, builtinSymbols *builtin.Builtin) object.Object {
 
   switch nodeType := node.(type) {
   case *ast.Program:
-    return evalProgram(nodeType, environment)
+    return evalProgram(nodeType, environment, builtinSymbols)
   case *ast.BlockStatement:
-    return evalStatement(nodeType.Statements, environment)
+    return evalStatement(nodeType.Statements, environment, builtinSymbols)
   case *ast.ExpressionStatement:
-    return Eval(nodeType.Exp, environment)
+    return Eval(nodeType.Exp, environment, builtinSymbols)
   case *ast.IntegerLiteral:
     return &object.Integer{Value: nodeType.Value}
   case *ast.BoolExpression:
@@ -22,7 +23,7 @@ func Eval(node ast.Node, environment *object.Environment) object.Object {
   case *ast.StringExpression:
     return nativeStringToObject(nodeType.Value)
   case *ast.LetStatement:
-    valueExpression := Eval(nodeType.Value, environment)
+    valueExpression := Eval(nodeType.Value, environment, builtinSymbols)
     if isError(valueExpression) {
       return valueExpression
     }
@@ -31,55 +32,66 @@ func Eval(node ast.Node, environment *object.Environment) object.Object {
   case *ast.Identifier:
     value, ok := environment.GetVar(nodeType.Value)
     if !ok {
-      return &object.ErrorObject{Error:fmt.Sprintf("%s was not declare", nodeType.Value)}
+      value,ok = builtinSymbols.GetObject(nodeType.Value)
+      if !ok{
+        return &object.ErrorObject{Error:fmt.Sprintf("%s was not declare", nodeType.Value)}
+      }
     }
     return value
   case *ast.FunctionExpression:
     return &object.Function{Params:nodeType.Params, Body:nodeType.Block, Env:environment.ExtendNewEnvironment()}
   case *ast.CallFunctionExpression:
-    params := evalExpressions(nodeType.Arguments, environment)
+    params := evalExpressions(nodeType.Arguments, environment, builtinSymbols)
     if len(params) == 1 && isError(params[0]) {
       return params[0]
     }
-    value := Eval(nodeType.Function, environment)
+    value := Eval(nodeType.Function, environment, builtinSymbols)
     if isError(value) {
       return value
+    }
+    switch valueFunction := value.(type) {
+    case *object.Function:
+      return applyArgumentsToFunctionAndCall(valueFunction, params, builtinSymbols)
+    case *builtin.BuiltinFunction:
+      return valueFunction.Function(environment, builtinSymbols, params...)
+    default:
+      return newError(fmt.Sprintf("expected function %s", value.Inspect()))
     }
     function, ok := value.(*object.Function)
     if !ok {
       return newError(fmt.Sprintf("expected function %s", value.Inspect()))
     }
-    return applyArgumentsToFunctionAndCall(function, params)
+    return applyArgumentsToFunctionAndCall(function, params, builtinSymbols)
   case *ast.PrefixExpression:
-    rightExpression := Eval(nodeType.RightExpression, environment)
+    rightExpression := Eval(nodeType.RightExpression, environment, builtinSymbols)
     if isError(rightExpression) {
       return rightExpression
     }
     return evalPrefixExpression(nodeType.Operator, rightExpression)
   case *ast.ReturnStatement:
-    value := Eval(nodeType.Value, environment)
+    value := Eval(nodeType.Value, environment, builtinSymbols)
     if isError(value) {
       return value
     }
     return &object.ReturnObject{Value:value}
   case *ast.IfExpression:
-    condition := Eval(nodeType.Condition, environment)
+    condition := Eval(nodeType.Condition, environment, builtinSymbols)
     if isError(condition) {
       return condition
     }
     if evalTruthValue(condition) {
-      return Eval(nodeType.ConditionalBlock, environment)
+      return Eval(nodeType.ConditionalBlock, environment, builtinSymbols)
     } else if nodeType.AlternativeBlock != nil {
-      return Eval(nodeType.AlternativeBlock, environment)
+      return Eval(nodeType.AlternativeBlock, environment, builtinSymbols)
     } else {
       return nil
     }
   case *ast.InfixExpression:
-    leftExpression := Eval(nodeType.LeftExpression, environment)
+    leftExpression := Eval(nodeType.LeftExpression, environment, builtinSymbols)
     if isError(leftExpression) {
       return leftExpression
     }
-    rightExpression := Eval(nodeType.RightExpression, environment)
+    rightExpression := Eval(nodeType.RightExpression, environment, builtinSymbols)
     if isError(rightExpression) {
       return rightExpression
     }
@@ -89,14 +101,14 @@ func Eval(node ast.Node, environment *object.Environment) object.Object {
   return nil
 }
 
-func applyArgumentsToFunctionAndCall(function *object.Function, params []object.Object) object.Object {
+func applyArgumentsToFunctionAndCall(function *object.Function, params []object.Object, builtinSymbols *builtin.Builtin ) object.Object {
 
   if len(params) > len(function.Params) {
     return newError(fmt.Sprintf("this function takes at least %d arguments (%d given)", len(function.Params), len(params)))
   }
   newEnvironment := applyArguments(function, params)
   if len(function.Params) == len(params) {
-    returnValue := Eval(function.Body, newEnvironment)
+    returnValue := Eval(function.Body, newEnvironment, builtinSymbols)
     if returnValue.Type() == object.RETURN_OBJ {
       return returnValue.(*object.ReturnObject).Value
     }
@@ -113,10 +125,10 @@ func applyArguments(function *object.Function, params []object.Object) *object.E
   return newEnvironment
 }
 
-func evalExpressions(expressions []ast.Expression, environment *object.Environment) []object.Object {
+func evalExpressions(expressions []ast.Expression, environment *object.Environment,  builtinSymbols *builtin.Builtin) []object.Object {
   expressionsObjects := make([]object.Object, 0)
   for _, expression := range expressions {
-    expressionObject := Eval(expression, environment)
+    expressionObject := Eval(expression, environment, builtinSymbols)
     if isError(expressionObject) {
       return []object.Object{expressionObject}
     }
@@ -125,10 +137,10 @@ func evalExpressions(expressions []ast.Expression, environment *object.Environme
   return expressionsObjects
 }
 
-func evalProgram(program *ast.Program, environment *object.Environment) object.Object {
+func evalProgram(program *ast.Program, environment *object.Environment,  builtinSymbols *builtin.Builtin) object.Object {
   var result object.Object
   for _, statement := range program.Statements {
-    result = Eval(statement, environment)
+    result = Eval(statement, environment, builtinSymbols)
     if result == nil {
       continue
     }
@@ -247,10 +259,10 @@ func evalBangOperator(rightValue object.Object) object.Object {
   }
 }
 
-func evalStatement(statements []ast.Statement, environment *object.Environment) object.Object {
+func evalStatement(statements []ast.Statement, environment *object.Environment,  builtinSymbols *builtin.Builtin) object.Object {
   var result object.Object
   for _, statement := range statements {
-    result = Eval(statement, environment)
+    result = Eval(statement, environment, builtinSymbols)
     if result != nil && (result.Type() == object.RETURN_OBJ || result.Type() == object.ERROR_OBJ) {
       return result
     }

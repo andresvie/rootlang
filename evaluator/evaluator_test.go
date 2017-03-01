@@ -5,6 +5,7 @@ import (
   "rootlang/lexer"
   "rootlang/parser"
   "rootlang/object"
+  "rootlang/builtin"
 )
 
 func TestIntegerEvaluator(t *testing.T) {
@@ -12,7 +13,7 @@ func TestIntegerEvaluator(t *testing.T) {
   l := lexer.New(input)
   programParser := parser.New(l)
   program := programParser.ParseProgram()
-  returnValue := Eval(program, object.NewEnvironment())
+  returnValue := Eval(program, object.NewEnvironment(), builtin.New())
   objectInteger, ok := returnValue.(*object.Integer)
   if !ok {
     t.Error("should return object integer")
@@ -29,7 +30,7 @@ func TestFalseBooleanEvaluator(t *testing.T) {
   l := lexer.New(input)
   programParser := parser.New(l)
   program := programParser.ParseProgram()
-  returnValue := Eval(program, object.NewEnvironment())
+  returnValue := Eval(program, object.NewEnvironment(), builtin.New())
   objectBoolean, ok := returnValue.(*object.Boolean)
   if !ok {
     t.Error("should return object boolean")
@@ -67,7 +68,7 @@ func TestBooleanEvaluator(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     objectBoolean, ok := returnValue.(*object.Boolean)
     if !ok {
       t.Errorf("should return object boolean %s", test.input)
@@ -98,7 +99,7 @@ func TestIntegerExpressionEvaluator(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     objectInteger, ok := returnValue.(*object.Integer)
     if !ok {
       t.Error("should return integer object")
@@ -128,7 +129,7 @@ func TestIfExpressionEvaluator(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     if test.expected == nil && returnValue == nil {
       continue
     }
@@ -159,7 +160,7 @@ func TestReturnExpressionEvaluator(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     objectInteger, ok := returnValue.(*object.Integer)
     if !ok {
       t.Errorf("should return integer object %s", test.input)
@@ -184,7 +185,7 @@ func TestErrorExpression(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     errorObject, ok := returnValue.(*object.ErrorObject)
     if !ok {
       t.Errorf("should return error object %s", test.input)
@@ -208,7 +209,7 @@ func TestLetExpression(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     integerObject, ok := returnValue.(*object.Integer)
     if !ok {
       t.Errorf("should integer object %s", test.input)
@@ -220,6 +221,31 @@ func TestLetExpression(t *testing.T) {
     }
   }
 }
+
+func TestBuiltFunctionExpression(t *testing.T) {
+  tests := []struct {
+    input    string
+    expected int64
+  }{
+    {`let a=len("Carlos");a;`, 6},
+  }
+  for _, test := range tests {
+    l := lexer.New(test.input)
+    programParser := parser.New(l)
+    program := programParser.ParseProgram()
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
+    integerObject, ok := returnValue.(*object.Integer)
+    if !ok {
+      t.Errorf("should integer object %s", test.input)
+      return
+    }
+    if test.expected != integerObject.Value {
+      t.Errorf("should has %d and got %d %s", test.expected, integerObject.Value, test.input)
+      return
+    }
+  }
+}
+
 
 func TestFunctionExpression(t *testing.T) {
   tests := []struct {
@@ -235,7 +261,7 @@ func TestFunctionExpression(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     functionObject, ok := returnValue.(*object.Function)
     if !ok {
       t.Errorf("should function object %s", test.input)
@@ -274,7 +300,7 @@ func TestFunctionCallExpression(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     integerObject, ok := returnValue.(*object.Integer)
     if !ok {
       t.Errorf("should Integer object %s", test.input)
@@ -304,7 +330,7 @@ func TestStringObject(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     stringObject, ok := returnValue.(*object.String)
     if !ok {
       t.Errorf("should String object %s", test.input)
@@ -329,7 +355,7 @@ func TestClosure(t *testing.T) {
     l := lexer.New(test.input)
     programParser := parser.New(l)
     program := programParser.ParseProgram()
-    returnValue := Eval(program, object.NewEnvironment())
+    returnValue := Eval(program, object.NewEnvironment(), builtin.New())
     integerObject, ok := returnValue.(*object.Integer)
     if !ok {
       t.Errorf("should Integer object %s", test.input)

@@ -16,7 +16,10 @@ const (
   RETURN_OBJ   = "RETURN"
   ERROR_OBJ    = "ERROR"
   FUNCTION_OBJ = "FUNCTION"
+  BUILTIN_FUNCTION_OBJ = "BUILTIN_FUNCTION_OBJ"
   STRING_OBJ   = "STRING"
+  LIST         = "LIST"
+  DICT         = "DICT"
 )
 
 var (
