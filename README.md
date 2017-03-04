@@ -28,5 +28,6 @@ let p = list(1,2,3,4,5); // list declaration
 //rootlang has support for combinators functions like map,filter,reduce,zip
 let m = map(x => {return x*2;}, p); //return a new list transform by the lambda function [2,4,8,10];
 let f = filter(x => {return x%2 == 0;},p); //return a new list filter by the lambda function [2,4];
-let r = reduce(((x,y) => {return x+y;}, p);// return a value 15 reduce by the function
-let r1 = reduce(((x,y) => {return x+y;}, p, 10);// return a value 25 reduce by the function with initial value of 10
+let r = reduce((x,y) => {return x+y;}, p);// return a value 15 reduce by the function
+let r1 = reduce((x,y) => {return x+y;}, p, 10);// return a value 25 reduce by the function with initial value of 10
+let z = zip(m,f);//this return a list with another list with pair arguments [[2,2],[4,4]]
