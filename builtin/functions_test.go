@@ -23,7 +23,7 @@ func TestLenBuildExpression(t *testing.T) {
     t.Errorf("len functions should be type BUILTINT_FUNCTION_OBJECT")
     return
   }
-  returnValue := l.Function(object.NewEnvironment(), b, test)
+  returnValue := l.Function(object.NewEnvironment(), b, nil,test)
   value, ok:= returnValue.(*object.Integer)
   if !ok{
     t.Errorf("len functions should return Integer Object and got %s", returnValue.Type())

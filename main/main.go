@@ -8,6 +8,7 @@ import (
   "rootlang/lexer"
   "rootlang/evaluator"
   "rootlang/object"
+  "rootlang/builtin"
   "os"
 )
 
@@ -20,6 +21,7 @@ func main() {
 func start(in io.Reader, out io.Writer) {
   scanner := bufio.NewScanner(in)
   environment := object.NewEnvironment()
+  buitinSymbols := builtin.New()
   for {
     fmt.Print(PROMPT)
     scanned := scanner.Scan()
@@ -34,7 +36,7 @@ func start(in io.Reader, out io.Writer) {
       printParserErrors(out, p.GetErrors())
       continue
     }
-    evaluated := evaluator.Eval(program, environment)
+    evaluated := evaluator.Eval(program, environment, buitinSymbols)
     if evaluated != nil {
       io.WriteString(out, evaluated.Inspect())
       io.WriteString(out, "\n")

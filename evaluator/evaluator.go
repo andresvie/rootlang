@@ -53,7 +53,7 @@ func Eval(node ast.Node, environment *object.Environment, builtinSymbols *builti
     case *object.Function:
       return applyArgumentsToFunctionAndCall(valueFunction, params, builtinSymbols)
     case *builtin.BuiltinFunction:
-      return valueFunction.Function(environment, builtinSymbols, params...)
+      return valueFunction.Function(environment, builtinSymbols, Eval,params...)
     default:
       return newError(fmt.Sprintf("expected function %s", value.Inspect()))
     }

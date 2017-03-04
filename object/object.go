@@ -16,10 +16,10 @@ const (
   RETURN_OBJ   = "RETURN"
   ERROR_OBJ    = "ERROR"
   FUNCTION_OBJ = "FUNCTION"
-  BUILTIN_FUNCTION_OBJ = "BUILTIN_FUNCTION_OBJ"
+  BUILTIN_FUNCTION_OBJ = "NATIVE_FUNCTION"
   STRING_OBJ   = "STRING"
-  LIST         = "LIST"
-  DICT         = "DICT"
+  LIST_OBJ         = "LIST"
+  DICT_OBJ         = "DICT"
 )
 
 var (
@@ -43,6 +43,25 @@ func (integer *Integer) Type() ObjectType {
 
 func (integer *Integer) Inspect() string {
   return fmt.Sprintf("%d", integer.Value)
+}
+
+type List struct{
+  Elements []Object
+}
+
+func (l *List) Type() ObjectType {
+  return LIST_OBJ
+}
+
+func (l *List) Inspect() string {
+  buffer := bytes.NewBufferString("[")
+  elements := make([]string, 0)
+  for _, element:= range l.Elements{
+    elements = append(elements, element.Inspect())
+  }
+  buffer.WriteString(strings.Join(elements, ","))
+  buffer.WriteString("]")
+  return buffer.String()
 }
 
 type Boolean struct {
