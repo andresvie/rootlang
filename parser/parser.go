@@ -5,6 +5,7 @@ import (
   "rootlang/ast"
   "strconv"
   "fmt"
+  "strings"
 )
 
 const (
@@ -260,10 +261,38 @@ func (p *Parser) parseStatement() ast.Statement {
     return p.parseReturnStatement()
   } else if p.curToken.Type == lexer.LBRACE {
     return p.parserBlockStatement()
+  } else if p.curToken.Type == lexer.IMPORT {
+    return p.parseImportStatement()
   } else {
     return p.parseExpressionStatement()
   }
   return nil
+}
+
+func (p *Parser) parseImportStatement() ast.Statement {
+  token := p.curToken
+  p.nextToken()
+  if !p.isTokenExpected(lexer.STRING){
+    p.errors = append(p.errors, "string path is expected")
+    return nil
+  }
+  var identity *ast.Identifier
+  path := p.curToken.Literal
+  if !p.isNextTokenExpected(lexer.AS){
+    names := strings.Split(path, "/")
+    name := names[len(names) - 1]
+    identity = &ast.Identifier{Token:lexer.Token{Literal:name, Type:lexer.IDENT}, Value:name}
+  }else{
+    p.nextToken()
+    if !p.isNextTokenExpected(lexer.IDENT){
+      p.errors = append(p.errors, "identity is expected")
+      return nil
+    }
+    p.nextToken()
+    identity = p.parseIdentifierExpression().(*ast.Identifier)
+  }
+
+  return &ast.ImportStatement{Token:token, Path:path, Name:identity}
 }
 
 func (p *Parser) parserBlockStatement() ast.Statement {

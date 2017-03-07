@@ -10,16 +10,17 @@ import (
 type ObjectType string
 
 const (
-  INTEGER_OBJ  = "INTEGER"
-  BOOLEAN_OBJ  = "BOOLEAN"
-  NULL_OBJ     = "NULL"
-  RETURN_OBJ   = "RETURN"
-  ERROR_OBJ    = "ERROR"
-  FUNCTION_OBJ = "FUNCTION"
+  INTEGER_OBJ          = "INTEGER"
+  BOOLEAN_OBJ          = "BOOLEAN"
+  NULL_OBJ             = "NULL"
+  RETURN_OBJ           = "RETURN"
+  ERROR_OBJ            = "ERROR"
+  FUNCTION_OBJ         = "FUNCTION"
   BUILTIN_FUNCTION_OBJ = "NATIVE_FUNCTION"
-  STRING_OBJ   = "STRING"
-  LIST_OBJ         = "LIST"
-  DICT_OBJ         = "DICT"
+  STRING_OBJ           = "STRING"
+  LIST_OBJ             = "LIST"
+  DICT_OBJ             = "DICT"
+  MODULE_OBJ           = "MODULE"
 )
 
 var (
@@ -33,6 +34,8 @@ type Object interface {
   Inspect() string
 }
 
+
+
 type Integer struct {
   Value int64
 }
@@ -45,7 +48,7 @@ func (integer *Integer) Inspect() string {
   return fmt.Sprintf("%d", integer.Value)
 }
 
-type List struct{
+type List struct {
   Elements []Object
 }
 
@@ -56,7 +59,7 @@ func (l *List) Type() ObjectType {
 func (l *List) Inspect() string {
   buffer := bytes.NewBufferString("[")
   elements := make([]string, 0)
-  for _, element:= range l.Elements{
+  for _, element := range l.Elements {
     elements = append(elements, element.Inspect())
   }
   buffer.WriteString(strings.Join(elements, ","))
@@ -94,6 +97,25 @@ type ErrorObject struct {
 
 func (e *ErrorObject) Type() ObjectType { return ERROR_OBJ }
 func (e *ErrorObject) Inspect() string  { return e.Error }
+
+type Module struct{
+  Path string
+  Name string
+  Env    *Environment
+}
+
+
+func (m *Module) Type() ObjectType { return MODULE_OBJ }
+func (m *Module) Inspect() string  {
+  buffer := bytes.NewBufferString("[")
+  keys := make([]string, 0)
+  for key := range m.Env.vars{
+    keys  = append(keys, key)
+  }
+  buffer.WriteString(strings.Join(keys, ","))
+  buffer.WriteString("]")
+  return buffer.String()
+}
 
 type Function struct {
   Params []*ast.Identifier

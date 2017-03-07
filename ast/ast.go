@@ -111,6 +111,24 @@ type LetStatement struct {
   Value Expression
 }
 
+type ImportStatement struct{
+  Token lexer.Token
+  Path string
+  Name  *Identifier
+};
+
+func (im *ImportStatement) statementNode() {
+}
+
+func (im *ImportStatement) TokenLiteral() string {
+  return im.Token.Literal
+}
+
+func (im *ImportStatement) String() string {
+
+  return fmt.Sprintf(`import "%s" as %s`, im.Path, im.Name.String())
+}
+
 func (let *LetStatement) statementNode() {
 }
 

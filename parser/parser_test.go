@@ -29,7 +29,6 @@ func TestLetStatementLiteralValue(t *testing.T) {
   }
 }
 
-
 func TestStringExpression(t *testing.T) {
   input := `"carlos viera"`
   l := lexer.New(input)
@@ -369,8 +368,6 @@ func TestCallFunctionExpression(t *testing.T) {
   }
 }
 
-
-
 func TestFunctionExpressionWithoutParams(t *testing.T) {
   input := ` () =>
 	{
@@ -582,6 +579,39 @@ func TestExpressionStatement(t *testing.T) {
       return
     }
 
+  }
+}
+
+func TestImportStatement(t *testing.T) {
+  tests := []struct {
+    input           string
+    importStatement *ast.ImportStatement
+  }{
+    {`import "net"`, &ast.ImportStatement{Path:"net", Token:createToken(lexer.IMPORT, "import"), Name:&ast.Identifier{Value:"net"}}},
+    {`import "tmp/carlos" as test`, &ast.ImportStatement{Path:"tmp/carlos", Token:createToken(lexer.IMPORT, "import"), Name:&ast.Identifier{Value:"test"}}},
+    {`import "multiprocessing/threads/green"`, &ast.ImportStatement{Path:"multiprocessing/threads/green", Token:createToken(lexer.IMPORT, "import"), Name:&ast.Identifier{Value:"green"}}},
+  }
+  for _, test := range tests {
+    l := lexer.New(test.input)
+    p := New(l)
+    program := p.ParseProgram()
+    if len(program.Statements) != 1 {
+      t.Fatal("program should has 1 statements")
+      return
+    }
+    importStatement, ok := program.Statements[0].(*ast.ImportStatement)
+    if !ok {
+      t.Fatal("expected import statement")
+      return
+    }
+    if importStatement.Path != test.importStatement.Path {
+      t.Errorf("import expected path %s and got %s", importStatement.Path, test.importStatement.Path)
+      return
+    }
+    if importStatement.Name.Value != test.importStatement.Name.Value {
+      t.Errorf("import expected name %s and got %s", importStatement.Name.Value, test.importStatement.Name.Value)
+      return
+    }
   }
 }
 

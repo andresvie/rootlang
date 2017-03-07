@@ -5,7 +5,8 @@ import (
 )
 
 func TestNextTokenCompareAndOperators(t *testing.T) {
-  inputLine := `let compare = (a, b) => {
+  inputLine := `
+  let compare = (a, b) => {
 		let z = ten * 10;
 		let j = z / 5;
 		if a == b
@@ -104,6 +105,13 @@ func TestFunctionIdentifier(t *testing.T) {
 func TestStringEscapeToken(t *testing.T) {
   inputLine := `"carlos \"viera\""`
   assertLexer(t, inputLine, []Token{Token{Type:STRING, Literal:"carlos \"viera\""}, })
+}
+
+func TestImportStatement(t *testing.T) {
+  inputLine := `import "net" as netTest
+   	`
+  tokensExpected := []Token{Token{Type: IMPORT, Literal:"import"}, Token{Type: STRING, Literal:"net"}, Token{Type: AS, Literal:"as"},Token{Type: IDENT, Literal:"netTest"}}
+  assertLexer(t, inputLine, tokensExpected)
 }
 
 func TestNextToken(t *testing.T) {

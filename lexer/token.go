@@ -36,9 +36,11 @@ const (
   MORETHAN  = ">"
   FUNCTION = "=>"
   STRING = `"`
+  IMPORT  = "IMPORT"
+  AS = "AS"
 )
 
-var keywords = map[string]TokenType{"let": LET, "if": IF, "return": RETURN, "true": TRUE, "false": FALSE, "else": ELSE}
+var keywords = map[string]TokenType{"import":IMPORT,"as":AS,"let": LET, "if": IF, "return": RETURN, "true": TRUE, "false": FALSE, "else": ELSE}
 
 func lookUpKeyWord(identifier string) TokenType {
   if tok, ok := keywords[identifier]; ok {
