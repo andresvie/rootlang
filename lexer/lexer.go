@@ -1,7 +1,7 @@
 package lexer
 
 import (
-  "strings"
+	"strings"
 )
 
 type Lexer struct {
@@ -21,23 +21,28 @@ func (l *Lexer) NextToken() Token {
 	l.skipSpace()
 	var token Token
 	switch l.ch {
+	case ':':
+		if l.peekChar() == ':' {
+			token = newToken(MODULE, "::")
+			l.readChar()
+		}
 	case '+':
 		token = newToken(PLUS, string(l.ch))
 	case '=':
 		if l.peekChar() == '=' {
 			token = newToken(EQUAL, "==")
 			l.readChar()
-		} else if l.peekChar() == '>'{
-      token = newToken(FUNCTION, "=>")
-      l.readChar()
-    } else {
+		} else if l.peekChar() == '>' {
+			token = newToken(FUNCTION, "=>")
+			l.readChar()
+		} else {
 			token = newToken(ASSIGN, string(l.ch))
 		}
 
 	case ',':
 		token = newToken(COMMA, string(l.ch))
-  case '%':
-    token = newToken(MOD, string(l.ch))
+	case '%':
+		token = newToken(MOD, string(l.ch))
 	case ';':
 		token = newToken(SEMICOLON, string(l.ch))
 	case '(':
@@ -68,8 +73,8 @@ func (l *Lexer) NextToken() Token {
 	case 0:
 		token.Type = EOF
 		token.Literal = ""
-  case '"':
-    token = newToken(STRING, l.readString())
+	case '"':
+		token = newToken(STRING, l.readString())
 	default:
 		if isLetter(l.ch) {
 			token.Literal = l.readIdentifier()
@@ -95,16 +100,16 @@ func (l*Lexer) peekChar() byte {
 	var nextToken byte = l.input[l.readPosition]
 	return nextToken
 }
-func (l*Lexer) readString() string{
-  l.readChar()
-  beginPosition := l.position
-  for l.ch != '"' || (l.ch == 92 && l.peekChar() == '"') {
-    if l.ch == 92 && l.peekChar() == '"'{
-      l.readChar()
-    }
-    l.readChar()
-  }
-  return strings.Replace(l.input[beginPosition:l.position], "\\", "", -1)
+func (l*Lexer) readString() string {
+	l.readChar()
+	beginPosition := l.position
+	for l.ch != '"' || (l.ch == 92 && l.peekChar() == '"') {
+		if l.ch == 92 && l.peekChar() == '"' {
+			l.readChar()
+		}
+		l.readChar()
+	}
+	return strings.Replace(l.input[beginPosition:l.position], "\\", "", -1)
 }
 func (l*Lexer) readNumber() string {
 	beginPosition := l.position
