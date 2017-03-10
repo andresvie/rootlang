@@ -11,7 +11,28 @@ import (
 	"rootlang/lexer"
 	"rootlang/parser"
 	"strings"
+	"errors"
 )
+
+func ReadPrincipalModule(pathModule string) (*object.Environment, error) {
+	builtinSymbols := builtin.New()
+	newEnvironment := object.NewEnvironment()
+	moduleContent, err := readModuleFile(pathModule)
+	if err != nil {
+		return nil, err
+	}
+	l := lexer.New(moduleContent)
+	p := parser.New(l)
+	program := p.ParseProgram()
+	if len(p.GetErrors()) != 0 {
+		return nil, err
+	}
+	evalResult := Eval(program, newEnvironment, builtinSymbols)
+	if evalResult != nil && evalResult.Type() == object.ERROR_OBJ {
+		return nil, errors.New(evalResult.Inspect())
+	}
+	return newEnvironment, nil
+}
 
 func importModule(importStatement *ast.ImportStatement, builtinSymbols *builtin.Builtin) object.Object {
 	modulePath := getModulePath(importStatement.Path, builtinSymbols.GetPaths())

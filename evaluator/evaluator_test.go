@@ -460,7 +460,6 @@ func TestModuleCall(t *testing.T) {
 	os.Remove(modulePath)
 }
 
-
 func TestModuleCall2(t *testing.T) {
 	moduleContent := "let y = 5; let addToX = x=>{return x+y;};"
 	modulePath := "/tmp/testImport.rl"
@@ -488,7 +487,6 @@ func TestModuleCall2(t *testing.T) {
 	os.Remove(modulePath)
 }
 
-
 func TestModuleCall3(t *testing.T) {
 	moduleContent := "let y = 5;"
 	modulePath := "/tmp/testImport.rl"
@@ -514,6 +512,73 @@ func TestModuleCall3(t *testing.T) {
 	}
 
 	os.Remove(modulePath)
+}
+
+func TestMainModuleModule(t *testing.T) {
+
+	input := `import "/net";
+import "/bytes";
+let main = () => {
+        let get_clients_to_write = (server, client)=> {
+                let is_current_client = client_to_write => {
+                        let client_id = net::get_client_id(client);
+                        let client_write_id = net::get_client_id(client_to_write);
+                        return client_id != client_write_id;
+                };
+                let clients = net::get_clients(server);
+                return filter(is_current_client, clients);
+        };
+        let on_client_connect = (server, client) => {
+                print("new client arrive --> ", client);
+                let clients = get_clients_to_write(server,client);
+                let client_id = net::get_client_id(client);
+                let message_to_send = bytes::create_writer("new-client :) ",client_id);
+                let clients_write = map(client_to_write => { return net::write_to_client(client_to_write, message_to_send);}, clients);
+                return clients_write;
+
+        };
+        let on_client_write = (server,client, message)=> {
+                let message_text = bytes::read_string(message);
+                print(message_text);
+                let clients = get_clients_to_write(server, client);
+                print("testing 1");
+                let client_id =  net::get_client_id(client);
+                print(clients, client_id);
+                let message_to_send = bytes::create_writer(client_id, ": ", message_text);
+                print(message_to_send);
+                let clients_write = map(client_to_write => { return net::write_to_client(client_to_write, message_to_send);}, clients);
+                print(clients_write);
+                return clients_write;
+        };
+        print("hola mundo");
+        net::listen(3000,on_client_connect, on_client_write);
+        return 0;
+};`
+	l := lexer.New(input)
+	programParser := parser.New(l)
+	program := programParser.ParseProgram()
+	env := object.NewEnvironment()
+	builtinSymbols := builtin.New()
+	returnValue := Eval(program, env, builtinSymbols)
+	if len(programParser.GetErrors()) != 0 {
+		t.Error(programParser.GetErrors()[0])
+		return
+	}
+	if returnValue != nil && returnValue.Type() == object.ERROR_OBJ {
+		t.Error("Error Evaluation main module")
+		return
+	}
+	mainFunction, hasMain := env.GetVar("main")
+	if !hasMain {
+		t.Error("Module Has No Main Function")
+		return
+	}
+	if mainFunction.Type() != object.FUNCTION_OBJ {
+		t.Error("Main is not a function")
+		return
+	}
+	CallMainFunction(mainFunction.(*object.Function), builtinSymbols)
+
 }
 
 func createModule(module, path string) {

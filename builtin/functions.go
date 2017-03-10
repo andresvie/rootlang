@@ -5,74 +5,8 @@ import (
 	"fmt"
 	"rootlang/ast"
 	"math"
+	"bytes"
 )
-
-const (
-	LEN    = "len"
-	LIST   = "list"
-	APPEND = "append"
-	MAP    = "map"
-	FILTER = "filter"
-	ZIP    = "zip"
-	REDUCE = "reduce"
-)
-
-type function func(env *object.Environment, b *Builtin, eval func(node ast.Node, environment *object.Environment, builtinSymbols *Builtin) object.Object, params ...object.Object) object.Object
-
-type BuiltinFunction struct {
-	Name     string
-	Function function
-	Params   []object.Object
-}
-
-func (builtinFunction *BuiltinFunction) Type() object.ObjectType {
-	return object.BUILTIN_FUNCTION_OBJ
-}
-
-func (builtinFunction *BuiltinFunction) Inspect() string {
-	return builtinFunction.Name
-}
-
-type Builtin struct {
-	symbols map[string]object.Object
-	paths   []string
-}
-
-func New() *Builtin {
-	symbols := registerSymbols()
-	paths := make([]string, 0)
-	return &Builtin{symbols: symbols, paths: paths}
-}
-
-func (b *Builtin) RegisterPath(path string) {
-	b.paths = append(b.paths, path)
-}
-
-func (b *Builtin) GetPaths() []string {
-	return b.paths
-}
-
-func (b *Builtin) GetObject(name string) (object.Object, bool) {
-	value, ok := b.symbols[name]
-	return value, ok
-}
-
-func registerSymbols() map[string]object.Object {
-	symbols := make(map[string]object.Object)
-	symbols[LEN] = getBuiltinFunction(_len, LEN)
-	symbols[LIST] = getBuiltinFunction(_list, LIST)
-	symbols[APPEND] = getBuiltinFunction(_append, APPEND)
-	symbols[MAP] = getBuiltinFunction(_map, MAP)
-	symbols[FILTER] = getBuiltinFunction(_filter, FILTER)
-	symbols[ZIP] = getBuiltinFunction(_zip, ZIP)
-	symbols[REDUCE] = getBuiltinFunction(_reduce, REDUCE)
-
-	return symbols
-}
-
-func getBuiltinFunction(f function, symbol string) *BuiltinFunction {
-	return &BuiltinFunction{Name: symbol, Function: f, Params: make([]object.Object, 0)}
-}
 
 func _zip(env *object.Environment, b *Builtin, eval func(node ast.Node, environment *object.Environment, builtinSymbols *Builtin) object.Object, params ...object.Object) object.Object {
 	elements := make([]object.Object, 0)
@@ -92,6 +26,15 @@ func _zip(env *object.Environment, b *Builtin, eval func(node ast.Node, environm
 		elements = append(elements, &object.List{Elements: zipArray})
 	}
 	return &object.List{Elements: elements}
+}
+
+func _print(env *object.Environment, b *Builtin, eval func(node ast.Node, environment *object.Environment, builtinSymbols *Builtin) object.Object, params ...object.Object) object.Object {
+	text := bytes.NewBufferString("")
+	for _, param := range params {
+		text.WriteString(param.Inspect())
+	}
+	fmt.Println(text)
+	return &object.String{Value: text.String()}
 }
 
 func _getListMinIndex(params []object.Object) uint64 {
@@ -226,48 +169,6 @@ func evalTruthValue(value object.Object) bool {
 	default:
 		return false
 	}
-}
-
-func __callFunction(function *object.Function, env *object.Environment, b *Builtin, eval func(node ast.Node, environment *object.Environment, builtinSymbols *Builtin) object.Object, param object.Object) [][]object.Object {
-	elements := make([][]object.Object, 0)
-	switch paramTye := param.(type) {
-	case *object.List:
-		for _, paramElement := range paramTye.Elements {
-			returnValues := applyArgumentsToFunctionAndCall(function, []object.Object{paramElement}, b, eval)
-			if returnValues.Type() == object.ERROR_OBJ {
-				return [][]object.Object{[]object.Object{returnValues}};
-			}
-			elements = append(elements, []object.Object{returnValues, paramElement})
-		}
-	default:
-		returnValues := applyArgumentsToFunctionAndCall(function, []object.Object{paramTye}, b, eval)
-		elements = append(elements, []object.Object{returnValues, paramTye})
-	}
-	return elements
-}
-
-func applyArgumentsToFunctionAndCall(function *object.Function, params []object.Object, builtinSymbols *Builtin, eval func(node ast.Node, environment *object.Environment, builtinSymbols *Builtin) object.Object) object.Object {
-
-	if len(params) > len(function.Params) {
-		return &object.ErrorObject{Error: (fmt.Sprintf("this function takes at least %d arguments (%d given)", len(function.Params), len(params)))}
-	}
-	newEnvironment := applyArguments(function, params)
-	if len(function.Params) == len(params) {
-		returnValue := eval(function.Body, newEnvironment, builtinSymbols)
-		if returnValue.Type() == object.RETURN_OBJ {
-			return returnValue.(*object.ReturnObject).Value
-		}
-		return returnValue
-	}
-	return function.Clone(function.Params[len(params):], newEnvironment)
-}
-
-func applyArguments(function *object.Function, params []object.Object) *object.Environment {
-	newEnvironment := function.Env.ExtendNewEnvironment()
-	for i := 0; i < len(params); i++ {
-		newEnvironment.SetVar(function.Params[i].Value, params[i])
-	}
-	return newEnvironment
 }
 
 func _list(_ *object.Environment, _ *Builtin, _ func(node ast.Node, environment *object.Environment, builtinSymbols *Builtin) object.Object, params ...object.Object) object.Object {

@@ -5,8 +5,12 @@ import (
 	"rootlang/object"
 	"rootlang/builtin"
 	"fmt"
+	"strings"
 )
 
+func CallMainFunction(function *object.Function, builtinSymbols *builtin.Builtin) object.Object {
+	return applyArgumentsToFunctionAndCall(function, []object.Object{}, builtinSymbols)
+}
 func Eval(node ast.Node, environment *object.Environment, builtinSymbols *builtin.Builtin) object.Object {
 
 	switch nodeType := node.(type) {
@@ -23,6 +27,11 @@ func Eval(node ast.Node, environment *object.Environment, builtinSymbols *builti
 	case *ast.StringExpression:
 		return nativeStringToObject(nodeType.Value)
 	case *ast.ImportStatement:
+		builtinModule, ok := builtinSymbols.GetObject(nodeType.Name.Value)
+		if ok {
+			environment.SetVar(nodeType.Name.Value, builtinModule)
+			return nil
+		}
 		resultImport := importModule(nodeType, builtinSymbols)
 		if isError(resultImport) {
 			return resultImport
@@ -128,13 +137,20 @@ func moduleEvaluation(module *object.Module, expression ast.Expression, environm
 		if isError(value) {
 			return value
 		}
-		if value.Type() != object.FUNCTION_OBJ {
+		if value.Type() != object.FUNCTION_OBJ && value.Type() != object.BUILTIN_FUNCTION_OBJ {
 			return newError(fmt.Sprintf("expected function and got %s", value.Type()))
 		}
-		function := value.(*object.Function)
-		return applyArgumentsToFunctionAndCall(function, params, builtinSymbols)
+		switch functionType := value.(type) {
+		case *object.Function:
+			return applyArgumentsToFunctionAndCall(functionType, params, builtinSymbols)
+		case *builtin.BuiltinFunction:
+			return functionType.Function(environment, builtinSymbols, Eval, params...)
+		default:
+			return newError("expression not expected on module")
+		}
+
 	case *ast.Identifier:
-		 value,ok := module.Env.GetVar(nodeType.Value)
+		value, ok := module.Env.GetVar(nodeType.Value)
 		if !ok {
 			return newError(fmt.Sprintf("symbol %s not found in module %s", nodeType.Value, module.Name))
 		}
@@ -232,10 +248,14 @@ func evalInfixExpression(operator string, rightValue, leftValue object.Object) o
 	if (rightValue.Type() == object.STRING_OBJ || leftValue.Type() == object.STRING_OBJ) && operator == "+" {
 		return nativeStringToObject(fmt.Sprintf("%s%s", leftValue.Inspect(), rightValue.Inspect()));
 	}
+	if (rightValue.Type() == object.STRING_OBJ || leftValue.Type() == object.STRING_OBJ) && operator == "!=" {
+		return nativeToBooleanObject(strings.Compare(leftValue.Inspect(), rightValue.Inspect()) != 0);
+	}
 	switch operator {
 	case "==":
 		return nativeToBooleanObject(leftValue == rightValue)
 	case "!=":
+
 		return nativeToBooleanObject(leftValue != rightValue)
 	default:
 		return &object.ErrorObject{Error: fmt.Sprintf("unknow operator for %s %s %s", leftValue.Inspect(), operator, rightValue.Inspect())}
