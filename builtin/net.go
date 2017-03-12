@@ -46,7 +46,6 @@ func buildNetModule() *object.Module {
 	env.SetVar("get_client_id", getBuiltinFunction(_get_client_id, "get_client_id"))
 	env.SetVar("get_clients", getBuiltinFunction(_get_clients, "get_clients"))
 	env.SetVar("write_to_client", getBuiltinFunction(_write_to_client, "write_to_client"))
-
 	return &object.Module{Env: env, Name: "net", Path: "/net"}
 
 }

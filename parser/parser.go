@@ -181,6 +181,8 @@ func (p *Parser) parseFunctionExpression(params ast.Expression) ast.Expression {
 	functionToken := p.curToken
 	p.nextToken()
 	var paramsExpression []*ast.Identifier = nil
+	var blogStatement *ast.BlockStatement = nil
+	var ok bool
 	switch paramsType := params.(type) {
 	case *ast.ParamsExpression:
 		paramsExpression = paramsType.Params
@@ -191,15 +193,25 @@ func (p *Parser) parseFunctionExpression(params ast.Expression) ast.Expression {
 		return nil
 	}
 	if !p.isTokenExpected(lexer.LBRACE) {
-		p.errors = append(p.errors, "function definition block is expected")
-		return nil
+		expression := p.parseExpression(LOWEST)
+		if expression == nil {
+			p.errors = append(p.errors, "expression was expected on lambda function")
+			return nil
+		}
+		token := lexer.Token{Type: lexer.RETURN, Literal: "return"}
+		blockStatementToken := lexer.Token{Type: lexer.LBRACE, Literal: "{"}
+		returnStatement := &ast.ReturnStatement{Value: expression, Token: token}
+		statements := []ast.Statement{returnStatement}
+		blogStatement = &ast.BlockStatement{Token: blockStatementToken, Statements: statements}
+	} else {
+		blogStatement, ok = p.parserBlockStatement().(*ast.BlockStatement)
+		if !ok {
+			p.errors = append(p.errors, "function definition block is expected")
+			return nil
+		}
 	}
-	block, ok := p.parserBlockStatement().(*ast.BlockStatement)
-	if !ok {
-		p.errors = append(p.errors, "function definition block is expected")
-		return nil
-	}
-	return &ast.FunctionExpression{functionToken, paramsExpression, block}
+
+	return &ast.FunctionExpression{functionToken, paramsExpression, blogStatement}
 
 }
 
@@ -212,10 +224,6 @@ func (p *Parser) parseCallFunctionExpression(function ast.Expression) ast.Expres
 		return nil
 	}
 	callFunctionExpression.Arguments = arguments
-	if p.isNextTokenExpected(lexer.RPAREN) {
-		p.errors = append(p.errors, "right parent is expected")
-		return nil
-	}
 	return callFunctionExpression
 }
 func (p *Parser) parseArguments() []ast.Expression {
@@ -233,7 +241,7 @@ func (p *Parser) parseArguments() []ast.Expression {
 		}
 
 	}
-	if !p.isNextTokenExpected(lexer.SEMICOLON){
+	if !p.isNextTokenExpected(lexer.SEMICOLON) {
 		p.nextToken()
 	}
 

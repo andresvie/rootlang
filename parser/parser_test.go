@@ -332,11 +332,17 @@ func TestCallFunctionExpressionWithoutArguments(t *testing.T) {
 }
 
 func TestCallFunctionExpression(t *testing.T) {
-	input := `add(2, x());`
-	expectedStatements := []string{"add(2,x())"}
+	input := `add(2, x(2,3))`
+	expectedStatements := []string{"add(2,x(2,3))"}
 	l := lexer.New(input)
 	p := New(l)
 	program := p.ParseProgram()
+	if len(p.GetErrors()) != 0{
+		showParserErrors(p, t)
+		showPrefixParserError(p, t)
+		t.Error("not error was expected\n")
+		return
+	}
 	if len(program.Statements) != len(expectedStatements) {
 		showParserErrors(p, t)
 		showPrefixParserError(p, t)
@@ -378,6 +384,44 @@ func TestFunctionExpressionWithoutParams(t *testing.T) {
 	{
 		return 5;
 	}
+   	`
+	expectedStatements := []string{"()=>{return 5;}"}
+	l := lexer.New(input)
+	p := New(l)
+	program := p.ParseProgram()
+	if len(program.Statements) != len(expectedStatements) {
+		showParserErrors(p, t)
+		showPrefixParserError(p, t)
+		t.Errorf("number of statement expected is %d and got %d", len(expectedStatements), len(program.Statements))
+		return
+	}
+	expressionStatement, okExpression := program.Statements[0].(*ast.ExpressionStatement)
+	if !okExpression {
+		showParserErrors(p, t)
+		showPrefixParserError(p, t)
+		t.Errorf("expression statement is expected")
+		return
+	}
+
+	functionExpression, okFunctionExpression := expressionStatement.Exp.(*ast.FunctionExpression)
+	if !okFunctionExpression {
+		showParserErrors(p, t)
+		showPrefixParserError(p, t)
+		t.Errorf("function expression is expected")
+		return
+	}
+	if functionExpression.String() != expectedStatements[0] {
+		showParserErrors(p, t)
+		showPrefixParserError(p, t)
+		t.Errorf("function expression should %s and got %s", expectedStatements[0], functionExpression.String())
+		return
+	}
+
+}
+
+
+func TestFunctionLambdaShorcut(t *testing.T) {
+	input := ` () => 5;
    	`
 	expectedStatements := []string{"()=>{return 5;}"}
 	l := lexer.New(input)

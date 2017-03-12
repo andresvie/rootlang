@@ -1,3 +1,3 @@
 let main = () => {
-	print("hola mundo");
+	print("hola\"que mas pana\"\nmundo");
 };

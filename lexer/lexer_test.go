@@ -102,10 +102,14 @@ func TestFunctionIdentifier(t *testing.T) {
 	assertLexer(t, inputLine, []Token{Token{Type: FUNCTION, Literal: "=>"}, })
 }
 
+
+
 func TestStringEscapeToken(t *testing.T) {
-	inputLine := `"carlos \"viera\""`
-	assertLexer(t, inputLine, []Token{Token{Type: STRING, Literal: "carlos \"viera\""}, })
+	inputLine := "\"\\n\\r\\t\\\"\""
+	assertLexer(t, inputLine, []Token{Token{Type: STRING, Literal: "\n\r\t\""}, })
 }
+
+
 
 func TestImportStatement(t *testing.T) {
 	inputLine := `import "net" as netTest

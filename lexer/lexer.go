@@ -103,14 +103,23 @@ func (l*Lexer) peekChar() byte {
 func (l*Lexer) readString() string {
 	l.readChar()
 	beginPosition := l.position
-	for l.ch != '"' || (l.ch == 92 && l.peekChar() == '"') {
+	for l.isStringCharacter() {
 		if l.ch == 92 && l.peekChar() == '"' {
 			l.readChar()
 		}
 		l.readChar()
 	}
-	return strings.Replace(l.input[beginPosition:l.position], "\\", "", -1)
+	text := strings.Replace(l.input[beginPosition:l.position], `\"`, `"`, -1)
+	text = strings.Replace(text, "\\n", "\n", -1)
+	text = strings.Replace(text, "\\r", "\r", -1)
+	text = strings.Replace(text, "\\t", "\t", -1)
+	return text
 }
+
+func (l *Lexer) isStringCharacter() bool {
+	return l.ch != '"' || isSpace(l.ch) || (l.ch == 92 && l.peekChar() == '"');
+}
+
 func (l*Lexer) readNumber() string {
 	beginPosition := l.position
 	for isNumber(l.ch) {
